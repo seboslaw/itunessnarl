@@ -18,12 +18,11 @@ LONG32 snShowMessage(LPCSTR szTitle, LPCSTR szText, LONG32 timeout, LPCSTR szIco
 	ZeroMemory((void*)&ss, sizeof(ss));
 
 	ss.Cmd = SNARL_SHOW;
+
 	strncpy((LPSTR)&ss.Title, szTitle, SNARL_STRING_LENGTH);
 	strncpy((LPSTR)&ss.Text, szText, SNARL_STRING_LENGTH);
 	strncpy((LPSTR)&ss.Icon, szIconPath, SNARL_STRING_LENGTH);
 	ss.Timeout = timeout;
-
-
 
 	ss.LngData2 = (LONG32)hWndReply;
 	ss.Id = uReplyMsg;
@@ -41,19 +40,8 @@ LONG32 snShowMessage(LPCSTR szTitle, LPCSTR szText, LONG32 timeout, LPCSTR szIco
 /// @Returns: M_FAILED, M_TIMED_OUT, M_BAD_HANDLE, M_NOT_FOUND, M_ACCESS_DENIED
 LONG32 snShowMessageEx(LPCSTR szClass, LPCSTR szTitle, LPCSTR szText, LONG32 timeout, LPCSTR szIconPath, HWND hWndReply, WPARAM uReplyMsg, LPCSTR szSoundFile)
 {
+
 	struct SNARLSTRUCTEX ssex;
-
-	//if(avoidDoubleAlerts) {
-	/*	if(strcmp(szClass,lastClass)==0 && strcmp(szTitle,lastTitle)==0 && strcmp(szText,lastText)==0 && strcmp(szIconPath,lastIcon)==0) {
-			// completly the same alert has been initiated before...
-			szTitle = "Doppel!";
-		}
-
-		strncpy(lastTitle,szTitle,SNARL_STRING_LENGTH);
-		strncpy(lastText,szText,SNARL_STRING_LENGTH);
-		strncpy(lastClass,szClass,SNARL_STRING_LENGTH);
-		strncpy(lastIcon,szIconPath,SNARL_STRING_LENGTH); */
-	//}
 
 	ZeroMemory((void*)&ssex, sizeof(ssex));
 	ssex.Cmd = SNARL_EX_SHOW;

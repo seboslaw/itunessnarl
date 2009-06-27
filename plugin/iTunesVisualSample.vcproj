@@ -76,7 +76,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile=".\Release/iTunesSnarl.dll"
+				OutputFile="C:\Program Files (x86)\iTunes\Plug-Ins\iTunesSnarl\iTunesSnarl.dll"
+				Version="1.2"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				RandomizedBaseAddress="1"
@@ -220,6 +221,10 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\artwork.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\iTunesVisualAPIW32\iTunesAPI.c"
 				>
 			</File>
@@ -253,6 +258,10 @@
 		<Filter
 			Name="Header Files"
 			>
+			<File
+				RelativePath=".\artwork.h"
+				>
+			</File>
 			<File
 				RelativePath=".\iTunesVisualAPIW32\iTunesAPI.h"
 				>

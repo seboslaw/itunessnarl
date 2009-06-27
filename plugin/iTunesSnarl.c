@@ -52,15 +52,11 @@
 
 // Windows headers
 #include <windows.h>
-//#include "malloc.h"
-//#include <QTML.h> 
-#include "shlobj.h"
-//#include "iTunesCOMInterface.h"
-#include "iTunesVisualAPI.h"
 #include <stdio.h>
 #include "SnarlInterfaceC.h"
-
-
+#include "shlobj.h"
+#include "artwork.h"
+#include "iTunesVisualAPI.h"
 
 #define GRAPHICS_DEVICE	HWND
 #define	MAIN iTunesPluginMain
@@ -103,7 +99,8 @@ typedef struct VisualPluginData VisualPluginData;
 
 LONG32 SNARL_GLOBAL_MESSAGE = 0;
 HWND iTunesSnarlWindow;
-static char imagePath[_MAX_PATH];
+static char imageIconPath[MAX_PATH];
+static char imagePath[MAX_PATH];
 
 // ClearMemory
 //
@@ -164,50 +161,13 @@ static void DeallocateVisualData (VisualPluginData *visualPluginData)
 		(void)visualPluginData;
 }
 
-static Boolean RectanglesEqual(const Rect *r1, const Rect *r2)
+static LRESULT CALLBACK iTunesSnarl_message_window_handler(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
 {
-	//if (
-	//	(r1->left == r2->left) &&
-	//	(r1->top == r2->top) &&
-	//	(r1->right == r2->right) &&
-	//	(r1->bottom == r2->bottom)
-	//	)
-	//	return true;
-	//return false;
-	
-}
-
-static LRESULT CALLBACK iTunesSnarl_message_window_handler(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-	if(msg == SNARL_GLOBAL_MESSAGE) {
-		if ((int)wparam == SNARL_LAUNCHED) {
-//			char logoPath[1024] = "";
-
-//			getLogoPath(logoPath);
-
-		/*	snRegisterConfig2(pidginSnarlWindow,"PidginSnarl",0,logoPath);
-			snRegisterAlert("PidginSnarl","Buddy logs on",TRUE);
-			snRegisterAlert("PidginSnarl","Buddy logs on at startup",FALSE);
-			snRegisterAlert("PidginSnarl","Buddy logs off",TRUE);
-			snRegisterAlert("PidginSnarl","Incoming messages",TRUE);
-			snRegisterAlert("PidginSnarl","Incoming messages on active window",FALSE);
-			snRegisterAlert("PidginSnarl","Greeting",TRUE);
-			snRegisterAlert("PidginSnarl","New email detailed",TRUE);
-			snRegisterAlert("PidginSnarl","New email summarized if detailed not supported",TRUE);
-			snRegisterAlert("PidginSnarl","New email summarized always",TRUE);
-			snRegisterAlert("PidginSnarl","Connection error",TRUE);
-			snRegisterAlert("PidginSnarl","Authorization requested",TRUE);
-
-			snRegisterAlert("PidginSnarl","Buddy starts writing",FALSE);
-			snRegisterAlert("PidginSnarl","Buddy changed status",FALSE);
-			snRegisterAlert("PidginSnarl","Buddy changed status at startup",FALSE);
-			snRegisterAlert("PidginSnarl","Buddy changed icon",FALSE);
-			snRegisterAlert("PidginSnarl","Buddy changed icon at startup",FALSE);*/
-		}
-	}
 	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
-static HWND generateSnarlMessageWindow() {
+static HWND generateSnarlMessageWindow() 
+{
 	// http://msdn.microsoft.com/en-us/library/ms632599(VS.85).aspx#message_only
 
 	HWND win_hwnd;
@@ -234,11 +194,13 @@ static HWND generateSnarlMessageWindow() {
 	SNARL_GLOBAL_MESSAGE = snGetGlobalMsg();
 
 	/* Create the window */
-	if(!(win_hwnd = CreateWindow("iTunesSnarl", TEXT("iTunesSnarl"), 0, 0, 0, 0, 0,
-		0, NULL, 0, 0))) {
-//			purple_debug_error("winpidgin", "iTunesSnarl: Unable to create message window.\n");
+	if(!(win_hwnd = CreateWindow("iTunesSnarl", 
+								 TEXT("iTunesSnarl"), 
+								 0, 0, 0, 0, 0, 0, NULL, 0, 0))) 
+	{
 			return NULL;
 	}
+
 	return win_hwnd;
 }
 
@@ -252,17 +214,13 @@ static OSStatus VisualPluginHandler (OSType message, VisualPluginMessageInfo *me
 	char artist[255];
 	char title[255];
 	char length;
+
 	OSStatus status;
-	void* albumCoverArtworkImageData = NULL;
-	BYTE* pDest = NULL;
 
-
-	int artSize = 0;
 	int i = 0;
 	int temp = 0;
 	
-	VisualPluginData *	visualPluginData;
-
+	VisualPluginData*	visualPluginData;
 	visualPluginData = (VisualPluginData *)refCon;
 
 	status = noErr;
@@ -286,10 +244,12 @@ static OSStatus VisualPluginHandler (OSType message, VisualPluginMessageInfo *me
 			visualPluginData->appProc	= messageInfo->u.initMessage.appProc;
 
 			iTunesSnarlWindow = generateSnarlMessageWindow();
-
-			SHGetSpecialFolderPath(0,programFilesPath, CSIDL_PROGRAM_FILES,false);
-			sprintf(imagePath, "%s%s\\icon.png", programFilesPath, iTunesPath);
 			
+			memset(imageIconPath, 0, MAX_PATH);
+			// Store path to iTunes icon for missing cover art
+			SHGetSpecialFolderPath(0,programFilesPath, CSIDL_PROGRAM_FILES,false);
+			sprintf_s(imageIconPath, sizeof(programFilesPath) + sizeof(iTunesPath) + 9, "%s%s\\icon.png", programFilesPath, iTunesPath);
+
 			snRegisterConfig2(iTunesSnarlWindow, "iTunesSnarl",0, imagePath);
 			snRegisterAlert("iTunesSnarl", "Update on new song", TRUE);
 		
@@ -367,54 +327,6 @@ static OSStatus VisualPluginHandler (OSType message, VisualPluginMessageInfo *me
 			Sent when the player starts.
 		*/
 		case kVisualPluginPlayMessage:
-			
-			memset(artist, '\0', sizeof(artist));
-			memset(title, '\0', sizeof(title));
-
-			if (messageInfo->u.playMessage.trackInfo != nil)
-			{			 
-				length = messageInfo->u.playMessage.trackInfo->artist[0];
-				for (i=1;i<length+1 && i<255;i++)
-				{
-					artist[i-1] = messageInfo->u.playMessage.trackInfo->artist[i];
-				}
-				temp = length;
-				length = messageInfo->u.playMessage.trackInfo->album[i];
-				artist[temp] = '\n';
-				temp++;
-				for (i=1;i<length+1 && i<255;i++)
-				{
-					artist[temp+i-1] = messageInfo->u.playMessage.trackInfo->album[i];
-				}
-
-				length = messageInfo->u.playMessage.trackInfo->name[0];
-				for (i=1;i<length+1 && i<255;i++)
-				{
-					title[i-1] = messageInfo->u.playMessage.trackInfo->name[i];
-				}
-				
-
-			}
-			else
-			{
-				sprintf(artist, "%s", "no artist info");
-				sprintf(title, "%s", "no title info");
-			}
-			snShowMessageEx("Update on new song", title, artist, 5, imagePath, hWndReply, (WPARAM)"","");
-
-
-			if (messageInfo->u.playMessage.trackInfo != nil)
-				visualPluginData->trackInfo = *messageInfo->u.playMessage.trackInfo;
-			else
-				ClearMemory(&visualPluginData->trackInfo, sizeof(visualPluginData->trackInfo));
-
-			if (messageInfo->u.playMessage.streamInfo != nil)
-				visualPluginData->streamInfo = *messageInfo->u.playMessage.streamInfo;
-			else
-				ClearMemory(&visualPluginData->streamInfo, sizeof(visualPluginData->streamInfo));
-		
-			visualPluginData->playing = true;
-			break;
 
 		/*
 			Sent when the player changes the current track information.  This
@@ -430,6 +342,7 @@ static OSStatus VisualPluginHandler (OSType message, VisualPluginMessageInfo *me
 			if (messageInfo->u.playMessage.trackInfo != nil)
 			{			 
 				length = messageInfo->u.playMessage.trackInfo->artist[0];
+				
 				for (i=1;i<length+1 && i<255;i++)
 				{
 					artist[i-1] = messageInfo->u.playMessage.trackInfo->artist[i];
@@ -452,10 +365,19 @@ static OSStatus VisualPluginHandler (OSType message, VisualPluginMessageInfo *me
 			}
 			else
 			{
-				sprintf(artist, "%s", "no artist info");
-				sprintf(title, "%s", "no title info");
+				sprintf_s(artist, 14, "%s", "No artist info");
+				sprintf_s(title, 13, "%s", "No title info");
 			}
-			snShowMessageEx("Update on new song", title, artist, 5, imagePath, hWndReply, (WPARAM)"","");
+
+			// Set image path to temp file
+			memset(imagePath, 0, MAX_PATH);
+			GetTempPath(MAX_PATH, imagePath);
+			GetTempFileName(imagePath, NULL, 0, imagePath);	
+
+			snShowMessageEx("Update on new song", title, artist, 5, (SaveCurrentArtwork(48, imagePath)) ? imagePath : imageIconPath, hWndReply, (WPARAM)"","");
+			
+			// Delete temporary image file
+			DeleteFile(imagePath);
 
 			if (messageInfo->u.changeTrackMessage.trackInfo != nil)
 				visualPluginData->trackInfo = *messageInfo->u.changeTrackMessage.trackInfo;
@@ -512,69 +434,6 @@ static OSStatus VisualPluginHandler (OSType message, VisualPluginMessageInfo *me
 
 	return status;	
 }
-
-//int getCurrentTrackCoverArt(void** albumCoverArtworkImageData, VisualPluginData* visualPluginData) {
-//
-////	PlayerGetCurrentTrackCoverArtMessage mess;
-////	OSType albumCoverArtworkFileType;
-////	Handle coverArtHandle = NULL;
-//	int numberOfBytes = 0;
-//	OSStatus			status;
-//	LPVOID pointer;
-//	char numberStr [ FILENAME_MAX ];
-//	char formatStr [ FILENAME_MAX ];
-//	OSType albumCoverArtworkFileType;
-//	Handle coverArtHandle = NULL;
-//	unsigned char byte0;
-//	unsigned char byte1;
-//	unsigned char byte2;
-//	unsigned char byte3;
-//
-//
-//	status = PlayerGetCurrentTrackCoverArt(visualPluginData->appCookie, visualPluginData->appProc, &coverArtHandle, &albumCoverArtworkFileType); 
-//	if (status == noErr && coverArtHandle != NULL) {
-//		HLock((Handle)coverArtHandle);
-//		numberOfBytes = GetHandleSize(coverArtHandle); // win: malloc.h: _msize(aHandle) (?)
-//		HUnlock((Handle)coverArtHandle);
-//
-////		pointer = LocalLock(coverArtHandle);
-////		if (pointer != NULL) {
-////			numberOfBytes = HeapSize(GetProcessHeap(), 0, coverArtHandle);
-//////			numberOfBytes = _msize((Handle)coverArtHandle); // win: malloc.h: _msize(aHandle) (?)			
-////		}
-////		LocalUnlock(coverArtHandle);
-//
-//		if (numberOfBytes > 0) {
-//			*albumCoverArtworkImageData = *coverArtHandle;
-//			
-//			byte0 = albumCoverArtworkFileType & 0xFF;
-//			byte1 = (albumCoverArtworkFileType >> 8) & 0xFF;
-//			byte2 = (albumCoverArtworkFileType >> 16)  & 0xFF;
-//			byte3 = (albumCoverArtworkFileType >> 24) & 0xFF;
-//
-//			sprintf(formatStr, "%c%c%c%c", byte3,byte2,byte1,byte0);
-//			sprintf(numberStr, "%i", numberOfBytes);
-//			snShowMessage(formatStr, numberStr, 5, imagePath, hWndReply,(WPARAM)"");
-//		}
-//
-//		//if (coverArtHandle) {
-//		//	theVisualHostCommunication->coverArtImageDataHandle = coverArtHandle;
-//		//}
-//	}
-//	return numberOfBytes;
-//
-//	
-//	//if (status != noErr)
-//	//{
-//	//	/*char dest[_MAX_PATH];
-//	//	FILE *pFile;
-//	//	pFile = static_cast<FILE*>(mess.coverArt);
-//	//	fread(dest, 1, _MAX_PATH,pFile);
-//	//	fwrite(mess.coverArt, 1, sizeof(mess.coverArt), fp);*/
-//	//	//					fputs(size, fp);
-//	////	fclose(fp);
-//	//}
-//}
 
 /*
 	RegisterVisualPlugin
