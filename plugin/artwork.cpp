@@ -43,7 +43,7 @@ inline BSTR ConvertStringToBSTR(const char* pSrc)
     return wsOut;
 };
 
-extern "C" boolean SaveCurrentArtwork(int size, char* outputFileName)
+extern "C" boolean SaveCurrentArtwork(char* outputFileName)
 {
 	BOOL artworkRetrieved = false;
 
@@ -105,9 +105,9 @@ extern "C" boolean SaveCurrentArtwork(int size, char* outputFileName)
 						iArtwork->Release();
 					}
 
-					iArtworkCollection->Release();
 				}
 
+				iArtworkCollection->Release();
 				
 			}
 			
@@ -116,6 +116,8 @@ extern "C" boolean SaveCurrentArtwork(int size, char* outputFileName)
 
 		iITunes->Release();
 	} 
+
+	iITunes = NULL;
 
 	CoUninitialize();
 

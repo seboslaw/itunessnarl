@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 // Saves content
-boolean SaveCurrentArtwork(int size, char* outputFileName);
+boolean SaveCurrentArtwork(char* outputFileName);
 
 #if defined (__cplusplus)
 }

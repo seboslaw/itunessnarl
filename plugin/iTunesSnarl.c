@@ -98,6 +98,7 @@ enum
 typedef struct VisualPluginData VisualPluginData;
 
 LONG32 SNARL_GLOBAL_MESSAGE = 0;
+LONG32 lastDisplayedMessageId = 0;
 HWND iTunesSnarlWindow;
 static char imageIconPath[MAX_PATH];
 static char imagePath[MAX_PATH];
@@ -210,6 +211,7 @@ VisualPluginHandler
 static OSStatus VisualPluginHandler (OSType message, VisualPluginMessageInfo *messageInfo, void *refCon)
 {
 	static char programFilesPath[50];
+	boolean hasArtwork;
 	char iTunesPath[33] = "\\iTunes\\Plug-Ins\\iTunesSnarl";
 	char artist[255];
 	char title[255];
@@ -374,7 +376,16 @@ static OSStatus VisualPluginHandler (OSType message, VisualPluginMessageInfo *me
 			GetTempPath(MAX_PATH, imagePath);
 			GetTempFileName(imagePath, NULL, 0, imagePath);	
 
-			snShowMessageEx("Update on new song", title, artist, 5, (SaveCurrentArtwork(48, imagePath)) ? imagePath : imageIconPath, hWndReply, (WPARAM)"","");
+			hasArtwork = SaveCurrentArtwork(imagePath);
+
+			if (snIsMessageVisible(lastDisplayedMessageId))
+			{
+				snUpdateMessage(lastDisplayedMessageId, title, artist, hasArtwork ? imagePath : imageIconPath);
+			}
+			else
+			{
+				lastDisplayedMessageId = snShowMessageEx("Update on new song", title, artist, 5, hasArtwork ? imagePath : imageIconPath, hWndReply, (WPARAM)"","");
+			}
 			
 			// Delete temporary image file
 			DeleteFile(imagePath);
