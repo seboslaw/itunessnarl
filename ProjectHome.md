@@ -1,0 +1,1 @@
+A plugin for iTunes, which displays the current track info via Snarl
